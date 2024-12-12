@@ -1,0 +1,176 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserPlan {
+  FREE
+  PREMIUM
+  PRO
+}
+
+model User {
+  userId               String            @id
+  countGenerate        Int               @default(0)
+  countDuration        Int               @default(0)
+  countChat            Int               @default(0)
+  countDailyUpload     Int               @default(0)
+  countMonthlyDuration Int               @default(0)
+  plan                 UserPlan          @default(FREE)
+  settings             Settings?
+  videos               Video[]
+  subscription         UserSubscription?
+  purchases            UserPurchase[]
+  creators             Creator[]
+  lastResetDate        DateTime?
+  lastMonthlyReset     DateTime?
+  tutorialCompleted    Boolean           @default(false)
+}
+
+model UserPurchase {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  plan             UserPlan
+  stripeCustomerId String?  @unique @map(name: "stripe_customer_id")
+  stripePaymentId  String?  @unique @map(name: "stripe_payment_id")
+  amount           Int
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [userId])
+}
+
+model UserSubscription {
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  stripeCustomerId       String?   @unique @map(name: "stripe_customer_id")
+  stripeSubscriptionId   String?   @unique @map(name: "stripe_subscription_id")
+  stripePriceId          String?   @map(name: "stripe_price_id")
+  stripeCurrentPeriodEnd DateTime? @map(name: "stripe_current_period_end")
+  user                   User      @relation(fields: [userId], references: [userId])
+}
+
+model Settings {
+  id               Int     @id @default(autoincrement())
+  theme            String  @default("light")
+  displayMode      String  @default("grid")
+  language         String  @default("en")
+  sidebarCollapsed Boolean @default(false)
+  userId           String  @unique
+  user             User    @relation(fields: [userId], references: [userId])
+}
+
+model Video {
+  id              Int      @id @default(autoincrement())
+  videoId         String
+  url             String
+  title           String
+  description     String
+  channelTitle    String
+  channelId       String
+  publishedAt     DateTime
+  thumbnails      Json
+  tags            String[]
+  categoryId      String
+  duration        String
+  dimension       String
+  definition      String
+  caption         String
+  licensedContent Boolean
+  projection      String
+  viewCount       Int
+  likeCount       Int
+  favoriteCount   Int
+  commentCount    Int
+  subtitles       Json
+  summaryAi       Json?
+  profilePicture  String
+  createdAt       DateTime @default(now())
+  userId          String
+  user            User     @relation(fields: [userId], references: [userId])
+}
+model Creator {
+  id              Int      @id @default(autoincrement())
+  name            String
+  url             String   @unique
+  channelId       String   @unique
+  subscriberCount Int
+  avatarUrl       String?
+  description     String?
+  isVerified      Boolean
+  userId          String
+  
+  user            User     @relation(fields: [userId], references: [userId])
+}
+
+
+
+
+model BlogPost {
+  id              Int           @id @default(autoincrement())
+  title           String
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+  excerpt         String
+  content         String?
+  thumbnail       String
+  thumbnailAlt    String?
+  featuredImage   String?
+  publishDate     DateTime
+  modifiedDate    DateTime?
+  readTime        Int
+  category        String
+  subcategories   String[]
+  slug            String       @unique
+  tags            String[]
+  isPublished     Boolean      @default(false)
+  isFeatured      Boolean      @default(false)
+  viewCount       Int          @default(0)
+  likeCount       Int          @default(0)
+  schemaType      String?
+  keywords        String?
+  locale          String?
+  
+  authorId        String
+  author          BlogAuthor[]
+  sections        BlogSection[]
+}
+
+model BlogAuthor {
+  id              Int           @id @default(autoincrement())
+  name            String
+  bio             String?
+  avatar          String?
+  socialLinks     Json?
+  posts           BlogPost[]
+}
+
+model BlogSection {
+  id          Int               @id @default(autoincrement())
+  heading     String
+  headingId   String?
+  content     String
+  
+  // Media
+  media       Json?
+
+  // Relations
+  blogPostId  Int
+  blogPost    BlogPost          @relation(fields: [blogPostId], references: [id])
+  subSections BlogSubSection[]
+}
+
+model BlogSubSection {
+  id            Int         @id @default(autoincrement())
+  subHeading    String
+  headingId     String?
+  content       String
+  callToAction  Json?
+  
+  // Relations
+  sectionId     Int
+  section       BlogSection @relation(fields: [sectionId], references: [id])
+}
